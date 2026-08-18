@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------
+  # Application Service (Frontend + Backend)
+  # ---------------------------------------------------
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: thinkify-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=secretpassword
+      - DB_NAME=thinkify_db
+    depends_on:
+      - db
+    restart: always
+
+  # ---------------------------------------------------
+  # Database Service
+  # ---------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: thinkify-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: secretpassword
+      MYSQL_DATABASE: thinkify_db
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+
+volumes:
+  db_data:

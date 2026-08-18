@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+
+    environment {
+        // Docker Hub repository and credential configuration
+        DOCKER_IMAGE        = 'your-dockerhub-username/my-node-app' // Replace with your Docker Hub username/repo
+        DOCKER_HUB_CREDS    = 'dockerhub-credentials-id'             // Jenkins Docker Hub Credential ID
+        SSH_CREDS           = 'app-server-ssh-key-id'                // Jenkins SSH Key Credential ID
+        
+        // Private App Server IP addresses (obtained from terraform outputs)
+        APP_SERVER_1        = '10.0.2.10' 
+        APP_SERVER_2        = '10.0.2.20'
+    }
+
+    stages {
+        stage('1. Checkout Code') {
+            steps {
+                // Fetch the latest source code from the GitHub repository
+                echo 'Fetching latest code from GitHub...'
+                checkout scm
+            }
+        }
+
+        stage('2. Build Docker Image') {
+            steps {
+                script {
+                    // Build application image using Docker/Dockerfile and application/backend context
+                    echo "Building Docker image: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -f Docker/Dockerfile ./application/backend"
+                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
+                }
+            }
+        }
+
+        stage('3. Push to Docker Hub') {
+            steps {
+                script {
+                    // Authenticate with Docker Hub and push image tags
+                    echo 'Logging into Docker Hub and pushing image...'
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDS}", passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                        sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                        sh "docker push ${DOCKER_IMAGE}:latest"
+                    }
+                }
+            }
+        }
+
+        stage('4. Deploy to Private App Servers') {
+            steps {
+                script {
+                    // Iterate through private EC2 instances and deploy container via SSH
+                    def servers = [env.APP_SERVER_1, env.APP_SERVER_2]
+                    
+                    for (server in servers) {
+                        echo "Deploying container to Private App Server: ${server}"
+                        sshagent([SSH_CREDS]) {
+                            sh """
+                                ssh -o StrictHostKeyChecking=no ec2-user@${server} "
+                                    sudo docker pull ${DOCKER_IMAGE}:latest &&
+                                    sudo docker stop my-app-container || true &&
+                                    sudo docker rm my-app-container || true &&
+                                    sudo docker run -d --name my-app-container -p 80:3000 ${DOCKER_IMAGE}:latest
+                                "
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up locally built Docker images to save disk space on Jenkins node
+            echo 'Cleaning up local Docker images on Jenkins node...'
+            sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
+            sh "docker rmi ${DOCKER_IMAGE}:latest || true"
+        }
+        success {
+            echo 'Deployment Completed Successfully!'
+        }
+        failure {
+            echo 'Deployment Failed! Check Jenkins logs for details.'
+        }
+    }
+}

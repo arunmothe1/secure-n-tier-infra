@@ -1,0 +1,32 @@
+# Local `.terraform` folder (Downloaded providers and modules)
+.terraform/
+.terraform.lock.hcl
+
+# Terraform State Files (Contains sensitive infrastructure data)
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+
+# Sensitive Variable Files (Contains API keys and passwords)
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Crash Logs
+crash.log
+crash.*.log
+
+# Key Files & Credentials
+*.pem
+*.key
+id_rsa
+.aws/
+
+# IDE & OS Specific Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
