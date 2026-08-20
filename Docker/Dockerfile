@@ -1,20 +1,48 @@
-# Use lightweight official Node.js image
-FROM node:18-alpine
+# =========================
+# Frontend Build
+# =========================
 
-# Set working directory inside the container
-WORKDIR /usr/src/app
+FROM node:20-alpine AS frontend-build
 
-# Copy dependency definitions
-COPY package*.json ./
+WORKDIR /app/client
 
-# Install production dependencies
-RUN npm install --only=production
+COPY client/package*.json ./
 
-# Copy application code into container
-COPY . .
+RUN npm install
 
-# Expose application port
+COPY client/ .
+
+RUN npm run build
+
+
+# =========================
+# Frontend Production
+# =========================
+
+FROM nginx:alpine AS frontend
+
+COPY --from=frontend-build /app/client/dist /usr/share/nginx/html
+
+COPY Docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+
+# =========================
+# Backend
+# =========================
+
+FROM node:20-alpine AS backend
+
+WORKDIR /app/server
+
+COPY server/package*.json ./
+
+RUN npm install
+
+COPY server/ .
+
 EXPOSE 3000
 
-# Command to run the application
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]
