@@ -1,31 +1,46 @@
 resource "aws_lb" "main" {
-  name               = "${var.project_name}-alb"
+  name               = "secure-n-tier-infra-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [var.alb_sg_id]
-  subnets            = var.public_subnet_ids
 
-  tags = { Name = "${var.project_name}-alb" }
+  security_groups = [
+    var.alb_security_group_id
+  ]
+
+  subnets = var.public_subnet_ids
+
+  tags = {
+    Name        = "secure-n-tier-infra-alb"
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
 }
 
 resource "aws_lb_target_group" "main" {
-  name     = "${var.project_name}-tg"
+  name     = "secure-n-tier-infra-tg"
   port     = var.application_port
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
   health_check {
+    enabled             = true
+    protocol            = "HTTP"
     path                = "/"
-    healthy_threshold   = 3
+    port                = "traffic-port"
+    healthy_threshold   = 2
     unhealthy_threshold = 3
-    timeout             = 5
     interval            = 30
-    matcher             = "200"
+    timeout             = 5
+  }
+
+  tags = {
+    Name = "secure-n-tier-infra-tg"
   }
 }
 
 resource "aws_lb_target_group_attachment" "app" {
-  count            = length(var.app_instance_ids)
+  count = length(var.app_instance_ids)
+
   target_group_arn = aws_lb_target_group.main.arn
   target_id        = var.app_instance_ids[count.index]
   port             = var.application_port
@@ -33,7 +48,7 @@ resource "aws_lb_target_group_attachment" "app" {
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
-  port              = var.application_port
+  port              = 80
   protocol          = "HTTP"
 
   default_action {

@@ -6,7 +6,7 @@ variable "aws_region" {
 
 variable "key_name" {
   type    = string
-  default = "my-aws-key" # your AWS Key Pair  exact name
+  default = "aws" # your AWS Key Pair  exact name
 }
 
 variable "environment" {
@@ -39,16 +39,10 @@ variable "private_db_subnet_cidr" {
   default     = "10.0.3.0/24"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type"
-  type        = string
-  default     = "t2.micro"
-}
-
 variable "project_name" {
   description = "Project name"
   type        = string
-  default     = "secure-aws-devops"
+  default     = "secure-n-tier-infra"
 }
 
 variable "jenkins_instance_type" {
