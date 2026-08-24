@@ -1,12 +1,18 @@
-# 1. ALB Security Group
 resource "aws_security_group" "alb" {
-  name        = "${var.environment}-alb-sg"
-  description = "Allow inbound HTTP traffic to ALB"
+  name        = "${var.project_name}-${var.environment}-alb-sg"
+  description = "Security group for Application Load Balancer"
   vpc_id      = var.vpc_id
 
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -17,12 +23,63 @@ resource "aws_security_group" "alb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-${var.environment}-alb-sg"
+  })
 }
 
-# 2. Jenkins Security Group
+resource "aws_security_group" "app" {
+  name        = "${var.project_name}-${var.environment}-app-sg"
+  description = "Security group for private application servers"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port       = var.app_port
+    to_port         = var.app_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-${var.environment}-app-sg"
+  })
+}
+
+resource "aws_security_group" "database" {
+  name        = "${var.project_name}-${var.environment}-database-sg"
+  description = "Security group for Amazon DocumentDB"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port       = 27017
+    to_port         = 27017
+    protocol        = "tcp"
+    security_groups = [aws_security_group.app.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-${var.environment}-database-sg"
+  })
+}
+
 resource "aws_security_group" "jenkins" {
-  name        = "${var.environment}-jenkins-sg"
-  description = "Allow SSH and Jenkins web UI"
+  name        = "${var.project_name}-${var.environment}-jenkins-sg"
+  description = "Security group for Jenkins server"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -45,53 +102,8 @@ resource "aws_security_group" "jenkins" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
 
-# 3. Application Security Group
-resource "aws_security_group" "app" {
-  name        = "${var.environment}-app-sg"
-  description = "Allow HTTP from ALB and SSH from Jenkins"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
-  ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.jenkins.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# 4. Database Security Group
-resource "aws_security_group" "db" {
-  name        = "${var.environment}-db-sg"
-  description = "Allow Database traffic only from App Servers"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    security_groups = [aws_security_group.app.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-${var.environment}-jenkins-sg"
+  })
 }

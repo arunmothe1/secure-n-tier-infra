@@ -32,28 +32,28 @@ The infrastructure creates an isolated multi-tier environment spanning across Pu
 
 ## 📁 Directory Structure
 
-```text
 terraform/
-├── versions.tf               # Terraform core and provider version constraints
-├── providers.tf              # AWS Provider configuration & global tags
-├── backend.tf                # Remote state configuration (S3 + DynamoDB template)
-├── variables.tf              # Global input variables
-├── outputs.tf                # Infrastructure output details
-├── terraform.tfvars.example  # Sample configuration values
-├── networking.tf             # VPC Module Orchestration
-├── security-groups.tf        # Security Group Module Orchestration
-├── compute.tf                # EC2 Compute Module Orchestration
-├── load-balancer.tf          # ALB Module Orchestration
+├── backend.tf
+├── versions.tf
+├── providers.tf
+├── variables.tf
+├── locals.tf
+├── data.tf
+├── main.tf
+├── outputs.tf
+├── terraform.tfvars
+├── terraform.tfvars.example
+├── README.md
 │
-├── user-data/
-│   ├── bootstrap.sh          # Jenkins server startup script (Amazon Linux 2023)
-│   └── app-server.sh         # App servers startup script (Docker setup)
+├── modules/
+│   ├── vpc/
+│   ├── security-group/
+│   ├── alb/
+│   ├── ec2/
+│   ├── ecr/
+│   └── rds/
 │
-└── modules/
-    ├── vpc/                  # Reusable VPC module
-    ├── security-group/       # Reusable Security Group module
-    ├── ec2/                  # Reusable EC2 module (Amazon Linux 2023)
-    └── alb/                  # Reusable ALB module
+└── screenshots/
 ```
 
 ---

@@ -1,3 +1,11 @@
+variable "project_name" {
+  type = string
+}
+
+variable "environment" {
+  type = string
+}
+
 variable "vpc_id" {
   type = string
 }
@@ -6,18 +14,21 @@ variable "public_subnet_ids" {
   type = list(string)
 }
 
-variable "alb_security_group_id" {
+variable "security_group_id" {
   type = string
 }
 
-variable "app_instance_ids" {
-  type = list(string)
+variable "app_port" {
+  type    = number
+  default = 3000
 }
 
-variable "application_port" {
-  type = number
+variable "health_check_path" {
+  type    = string
+  default = "/"
 }
 
-variable "environment" {
-  type = string
+variable "tags" {
+  type    = map(string)
+  default = {}
 }

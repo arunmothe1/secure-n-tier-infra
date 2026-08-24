@@ -2,86 +2,120 @@ pipeline {
     agent any
 
     environment {
-        // Docker Hub repository and credential configuration
-        DOCKER_IMAGE        = 'your-dockerhub-username/my-node-app' // Replace with your Docker Hub username/repo
-        DOCKER_HUB_CREDS    = 'dockerhub-credentials-id'             // Jenkins Docker Hub Credential ID
-        SSH_CREDS           = 'app-server-ssh-key-id'                // Jenkins SSH Key Credential ID
-        
-        // Private App Server IP addresses (obtained from terraform outputs)
-        APP_SERVER_1        = '10.0.2.10' 
-        APP_SERVER_2        = '10.0.2.20'
+        AWS_REGION     = 'ap-south-1'
+        ECR_REPOSITORY = 'secure-n-tier-infra-dev'
+        APP_TAG_NAME   = 'secure-n-tier-infra-dev-app'
+        IMAGE_TAG      = "${BUILD_NUMBER}"
     }
 
     stages {
-        stage('1. Checkout Code') {
+
+        stage('Checkout') {
             steps {
-                // Fetch the latest source code from the GitHub repository
-                echo 'Fetching latest code from GitHub...'
-                checkout scm
+                git branch: 'main',
+                    url: 'https://github.com/arunmothe1/secure-n-tier-infra.git'
             }
         }
 
-        stage('2. Build Docker Image') {
+        stage('Docker Build') {
             steps {
-                script {
-                    // Build application image using Docker/Dockerfile and application/backend context
-                    echo "Building Docker image: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -f Docker/Dockerfile ./application/backend"
-                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
-                }
+                sh '''
+                    docker build \
+                    -t ${ECR_REPOSITORY}:${IMAGE_TAG} \
+                    -t ${ECR_REPOSITORY}:latest \
+                    .
+                '''
             }
         }
 
-        stage('3. Push to Docker Hub') {
+        stage('Security Scan') {
             steps {
-                script {
-                    // Authenticate with Docker Hub and push image tags
-                    echo 'Logging into Docker Hub and pushing image...'
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDS}", passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
-                        sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                        sh "docker push ${DOCKER_IMAGE}:latest"
-                    }
-                }
+                sh '''
+                    docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    aquasec/trivy:latest \
+                    image \
+                    --exit-code 1 \
+                    --severity HIGH,CRITICAL \
+                    ${ECR_REPOSITORY}:${IMAGE_TAG}
+                '''
             }
         }
 
-        stage('4. Deploy to Private App Servers') {
+        stage('ECR Login') {
             steps {
-                script {
-                    // Iterate through private EC2 instances and deploy container via SSH
-                    def servers = [env.APP_SERVER_1, env.APP_SERVER_2]
-                    
-                    for (server in servers) {
-                        echo "Deploying container to Private App Server: ${server}"
-                        sshagent([SSH_CREDS]) {
-                            sh """
-                                ssh -o StrictHostKeyChecking=no ec2-user@${server} "
-                                    sudo docker pull ${DOCKER_IMAGE}:latest &&
-                                    sudo docker stop my-app-container || true &&
-                                    sudo docker rm my-app-container || true &&
-                                    sudo docker run -d --name my-app-container -p 80:3000 ${DOCKER_IMAGE}:latest
-                                "
-                            """
-                        }
-                    }
-                }
+                sh '''
+                    AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+                    --query Account \
+                    --output text)
+
+                    ECR_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+                    aws ecr get-login-password \
+                    --region ${AWS_REGION} | \
+                    docker login \
+                    --username AWS \
+                    --password-stdin ${ECR_REGISTRY}
+                '''
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                    AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+                    --query Account \
+                    --output text)
+
+                    ECR_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+                    docker tag \
+                    ${ECR_REPOSITORY}:${IMAGE_TAG} \
+                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+                    docker tag \
+                    ${ECR_REPOSITORY}:latest \
+                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
+
+                    docker push \
+                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+                    docker push \
+                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
+                '''
+            }
+        }
+
+        stage('Deploy to App Servers') {
+            steps {
+                sh '''
+                    AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+                    --query Account \
+                    --output text)
+
+                    ECR_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+                    aws ssm send-command \
+                    --region ${AWS_REGION} \
+                    --targets "Key=tag:Name,Values=${APP_TAG_NAME}" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters commands="aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}; docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest; docker rm -f app || true; docker run -d --name app --restart unless-stopped -p 3000:3000 ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+                '''
             }
         }
     }
 
     post {
-        always {
-            // Clean up locally built Docker images to save disk space on Jenkins node
-            echo 'Cleaning up local Docker images on Jenkins node...'
-            sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
-            sh "docker rmi ${DOCKER_IMAGE}:latest || true"
-        }
         success {
-            echo 'Deployment Completed Successfully!'
+            echo 'Pipeline completed successfully.'
         }
+
         failure {
-            echo 'Deployment Failed! Check Jenkins logs for details.'
+            echo 'Pipeline failed.'
+        }
+
+        always {
+            sh 'docker image prune -f || true'
         }
     }
 }

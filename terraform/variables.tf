@@ -1,76 +1,115 @@
 variable "aws_region" {
-  description = "AWS deployment region"
-  type        = string
-  default     = "ap-south-1"
-}
-
-variable "key_name" {
   type    = string
-  default = "aws" # your AWS Key Pair  exact name
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "prod"
-}
-
-variable "vpc_cidr" {
-  description = "VPC CIDR block"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "public_subnet_cidr" {
-  description = "Public Subnet CIDR"
-  type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "private_app_subnet_cidr" {
-  description = "Private App Subnet CIDR"
-  type        = string
-  default     = "10.0.2.0/24"
-}
-
-variable "private_db_subnet_cidr" {
-  description = "Private Database Subnet CIDR"
-  type        = string
-  default     = "10.0.3.0/24"
+  default = "ap-south-1"
 }
 
 variable "project_name" {
-  description = "Project name"
-  type        = string
-  default     = "secure-n-tier-infra"
+  type    = string
+  default = "secure-n-tier-infra"
+}
+
+variable "environment" {
+  type    = string
+  default = "dev"
+}
+
+variable "vpc_cidr" {
+  type    = string
+  default = "10.0.0.0/16"
+}
+
+variable "availability_zones" {
+  type = list(string)
+
+  default = [
+    "ap-south-1a",
+    "ap-south-1b"
+  ]
+}
+
+variable "public_subnet_cidrs" {
+  type = list(string)
+
+  default = [
+    "10.0.1.0/24",
+    "10.0.2.0/24"
+  ]
+}
+
+variable "private_subnet_cidrs" {
+  type = list(string)
+
+  default = [
+    "10.0.11.0/24",
+    "10.0.12.0/24"
+  ]
+}
+
+variable "database_subnet_cidrs" {
+  type = list(string)
+
+  default = [
+    "10.0.21.0/24",
+    "10.0.22.0/24"
+  ]
+}
+
+variable "instance_type" {
+  type    = string
+  default = "c7i-flex.large"
 }
 
 variable "jenkins_instance_type" {
-  description = "Instance type for Jenkins Controller"
-  type        = string
-  default     = "t3.small"
+  type    = string
+  default = "c7i-flex.large"
 }
 
-variable "app_instance_type" {
-  description = "Instance type for Application Servers"
-  type        = string
-  default     = "t3.micro"
+variable "min_size" {
+  type    = number
+  default = 2
 }
 
-variable "db_instance_type" {
-  description = "Instance type for Database Server"
-  type        = string
-  default     = "t3.micro"
+variable "max_size" {
+  type    = number
+  default = 2
 }
 
-variable "application_port" {
-  description = "Port on which the application listens"
-  type        = number
-  default     = 80
+variable "desired_capacity" {
+  type    = number
+  default = 2
 }
 
-variable "database_port" {
-  description = "Port on which MongoDB listens"
-  type        = number
-  default     = 27017
+variable "app_port" {
+  type    = number
+  default = 3000
+}
+
+variable "health_check_path" {
+  type    = string
+  default = "/"
+}
+
+variable "db_name" {
+  type    = string
+  default = "crud"
+}
+
+variable "db_username" {
+  type    = string
+  default = "admin"
+}
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "db_port" {
+  type    = number
+  default = 27017
+}
+
+variable "mongodb_instance_type" {
+  type    = string
+  default = "t2.micro"
 }

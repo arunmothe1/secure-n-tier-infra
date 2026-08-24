@@ -1,45 +1,26 @@
 services:
+  app:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: secure-n-tier-app
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+    depends_on:
+      - mongodb
+    restart: unless-stopped
 
   mongodb:
     image: mongo:7
-    container_name: crud-mongodb
-    restart: unless-stopped
+    container_name: secure-n-tier-mongodb
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-    networks:
-      - crud-network
-
-  backend:
-    build:
-      context: ..
-      dockerfile: Docker/Dockerfile
-      target: backend
-    container_name: crud-backend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
-    depends_on:
-      - mongodb
-    networks:
-      - crud-network
-
-  frontend:
-    build:
-      context: ..
-      dockerfile: Docker/Dockerfile
-      target: frontend
-    container_name: crud-frontend
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - crud-network
 
 volumes:
   mongodb_data:
-
-networks:
-  crud-network:
-    driver: bridge

@@ -1,10 +1,11 @@
+
 provider "aws" {
   region = var.aws_region
 
   default_tags {
     tags = {
+      Project     = var.project_name
       Environment = var.environment
-      Project     = "n-Tier-Cloud-Infrastructure"
       ManagedBy   = "Terraform"
     }
   }
