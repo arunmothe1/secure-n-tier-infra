@@ -229,6 +229,44 @@ resource "aws_iam_role_policy" "jenkins" {
       },
 
       {
+  Effect = "Allow"
+
+  Action = [
+    "ec2:DescribeInstances",
+    "ec2:DescribeRouteTables"
+  ]
+
+  Resource = "*"
+},
+
+{
+  Effect = "Allow"
+
+  Action = [
+    "ec2:DescribeInstances",
+    "ec2:DescribeRouteTables",
+    "ec2:DescribeSecurityGroups",
+    "ec2:DescribeNatGateways"
+  ]
+
+  Resource = "*"
+},
+
+{
+  Effect = "Allow"
+
+  Action = [
+    "ec2:DescribeInstances",
+    "ec2:DescribeRouteTables",
+    "ec2:DescribeSecurityGroups",
+    "ec2:DescribeNatGateways",
+    "ec2:DescribeNetworkAcls"
+  ]
+
+  Resource = "*"
+},
+
+      {
         Effect = "Allow"
 
         Action = [
