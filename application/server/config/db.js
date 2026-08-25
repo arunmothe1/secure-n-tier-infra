@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 // const mongoURI = 'mongodb+srv://crudapp:crudapp@cluster0.iydyt0r.mongodb.net/?retryWrites=true&w=majority';
-const mongoURI = 'mongodb://mongodb:27017/crud';
+const mongoURI = 'mongodb://10.0.22.19:27017/crud';
 
 const connectDB = async () => {
   try {
