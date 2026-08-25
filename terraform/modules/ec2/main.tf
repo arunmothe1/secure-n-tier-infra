@@ -79,12 +79,13 @@ resource "aws_launch_template" "app" {
     name = aws_iam_instance_profile.app.name
   }
 
-  user_data = base64encode(
-    templatefile("${path.module}/userdata/app.sh", {
-      aws_region         = var.aws_region
-      ecr_repository_url = var.ecr_repository_url
-    })
-  )
+user_data = base64encode(
+  templatefile("${path.module}/userdata/app.sh", {
+    aws_region          = var.aws_region
+    ecr_repository_url  = var.ecr_repository_url
+    mongodb_private_ip  = aws_instance.mongodb.private_ip
+  })
+)
 
   tag_specifications {
     resource_type = "instance"
@@ -217,6 +218,16 @@ resource "aws_iam_role_policy" "jenkins" {
         Resource = "*"
       },
 
+            {
+        Effect = "Allow"
+
+        Action = [
+          "ec2:DescribeInstances"
+        ]
+
+        Resource = "*"
+      },
+
       {
         Effect = "Allow"
 
@@ -259,11 +270,48 @@ resource "aws_instance" "jenkins" {
   }
 }
 
+resource "aws_iam_role" "mongodb" {
+  name = "${var.project_name}-${var.environment}-mongodb-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "mongodb_ssm" {
+  role       = aws_iam_role.mongodb.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "mongodb" {
+  name = "${var.project_name}-${var.environment}-mongodb-profile"
+  role = aws_iam_role.mongodb.name
+}
+
 resource "aws_instance" "mongodb" {
   ami                         = var.ami_id
   instance_type               = var.mongodb_instance_type
   subnet_id                   = var.database_subnet_ids[1]
   vpc_security_group_ids      = [var.database_security_group_id]
+  iam_instance_profile        = aws_iam_instance_profile.mongodb.name
   associate_public_ip_address = false
 
   user_data = file("${path.module}/userdata/mongodb.sh")
@@ -274,5 +322,8 @@ resource "aws_instance" "mongodb" {
     Environment = var.environment
     ManagedBy   = "Terraform"
     Tier        = "Database"
+  }
+    lifecycle {
+    create_before_destroy = true
   }
 }

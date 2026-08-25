@@ -31,4 +31,5 @@ docker run -d \
   --name app \
   --restart unless-stopped \
   -p 3000:3000 \
+  -e MONGO_URI="mongodb://${mongodb_private_ip}:27017/crud" \
   ${ecr_repository_url}:latest

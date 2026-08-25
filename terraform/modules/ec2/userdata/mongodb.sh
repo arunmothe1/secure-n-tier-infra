@@ -2,6 +2,12 @@
 
 dnf update -y
 
+# SSM Agent
+dnf install -y amazon-ssm-agent
+systemctl enable amazon-ssm-agent
+systemctl start amazon-ssm-agent
+
+# MongoDB Repository
 cat > /etc/yum.repos.d/mongodb-org-7.0.repo <<EOF
 [mongodb-org-7.0]
 name=MongoDB Repository
