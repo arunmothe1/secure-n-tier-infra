@@ -79,10 +79,12 @@ resource "aws_launch_template" "app" {
     name = aws_iam_instance_profile.app.name
   }
 
-  user_data = templatefile("${path.module}/userdata/app.sh", {
-    aws_region         = var.aws_region
-    ecr_repository_url = var.ecr_repository_url
-  })
+  user_data = base64encode(
+    templatefile("${path.module}/userdata/app.sh", {
+      aws_region         = var.aws_region
+      ecr_repository_url = var.ecr_repository_url
+    })
+  )
 
   tag_specifications {
     resource_type = "instance"
@@ -203,6 +205,7 @@ resource "aws_iam_role_policy" "jenkins" {
         Effect = "Allow"
 
         Action = [
+          "ssm:DescribeInstanceInformation",
           "ssm:SendCommand",
           "ssm:GetCommandInvocation",
           "ssm:ListCommands",
@@ -244,18 +247,16 @@ resource "aws_instance" "jenkins" {
 }
 
 resource "aws_instance" "mongodb" {
-  count = 2
-
   ami                         = var.ami_id
   instance_type               = var.mongodb_instance_type
-  subnet_id                   = var.database_subnet_ids[count.index]
+  subnet_id                   = var.database_subnet_ids[1]
   vpc_security_group_ids      = [var.database_security_group_id]
   associate_public_ip_address = false
 
   user_data = file("${path.module}/userdata/mongodb.sh")
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-mongodb-${count.index + 1}"
+    Name        = "${var.project_name}-${var.environment}-mongodb"
     Project     = var.project_name
     Environment = var.environment
     ManagedBy   = "Terraform"

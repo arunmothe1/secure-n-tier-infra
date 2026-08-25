@@ -10,17 +10,11 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/arunmothe1/secure-n-tier-infra.git'
-            }
-        }
-
         stage('Docker Build') {
             steps {
                 sh '''
                     docker build \
+                    -f Docker/Dockerfile \
                     -t ${ECR_REPOSITORY}:${IMAGE_TAG} \
                     -t ${ECR_REPOSITORY}:latest \
                     .
@@ -99,6 +93,7 @@ pipeline {
                     --region ${AWS_REGION} \
                     --targets "Key=tag:Name,Values=${APP_TAG_NAME}" \
                     --document-name "AWS-RunShellScript" \
+                    --comment "Deploy application ${IMAGE_TAG}" \
                     --parameters commands="aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}; docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest; docker rm -f app || true; docker run -d --name app --restart unless-stopped -p 3000:3000 ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
                 '''
             }
@@ -107,11 +102,11 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully.'
+            echo 'CI/CD pipeline completed successfully.'
         }
 
         failure {
-            echo 'Pipeline failed.'
+            echo 'CI/CD pipeline failed.'
         }
 
         always {
