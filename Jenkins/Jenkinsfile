@@ -80,22 +80,19 @@ pipeline {
        stage('Deploy to App Servers') {
     steps {
         sh '''
-            AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
-            --query Account \
-            --output text)
-
+            AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
             ECR_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
             MONGODB_PRIVATE_IP=$(aws ec2 describe-instances \
-            --region ${AWS_REGION} \
-            --filters "Name=tag:Name,Values=secure-n-tier-infra-dev-mongodb" \
-            --query "Reservations[].Instances[?State.Name=='running'].PrivateIpAddress | [0]" \
-            --output text)
+              --region ${AWS_REGION} \
+              --filters "Name=tag:Name,Values=secure-n-tier-infra-dev-mongodb" \
+              --query "Reservations[].Instances[?State.Name=='running'].PrivateIpAddress | [0]" \
+              --output text)
 
             echo "MongoDB Private IP: ${MONGODB_PRIVATE_IP}"
 
             if [ -z "${MONGODB_PRIVATE_IP}" ] || [ "${MONGODB_PRIVATE_IP}" = "None" ]; then
-                echo "ERROR: MongoDB private IP not found"
+                echo "ERROR: MongoDB IP not found"
                 exit 1
             fi
 
@@ -103,17 +100,22 @@ pipeline {
 
             echo "Deploying with MongoDB URI: ${MONGO_URI}"
 
+            COMMANDS=$(cat <<EOF
+[
+  "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}",
+  "docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest",
+  "docker rm -f app || true",
+  "docker run -d --name app --restart unless-stopped -p 3000:3000 -e MONGO_URI=${MONGO_URI} ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+]
+EOF
+)
+
             aws ssm send-command \
-            --region ${AWS_REGION} \
-            --targets "Key=tag:Name,Values=${APP_TAG_NAME}" \
-            --document-name "AWS-RunShellScript" \
-            --comment "Deploy application ${IMAGE_TAG}" \
-            --parameters "commands=[
-              \"aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}\",
-              \"docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest\",
-              \"docker rm -f app || true\",
-              \"docker run -d --name app --restart unless-stopped -p 3000:3000 -e MONGO_URI=${MONGO_URI} ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest\"
-            ]"
+              --region ${AWS_REGION} \
+              --targets "Key=tag:Name,Values=${APP_TAG_NAME}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy application ${IMAGE_TAG}" \
+              --parameters "commands=${COMMANDS}"
         '''
     }
 }
