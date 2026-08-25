@@ -223,6 +223,7 @@ resource "aws_iam_instance_profile" "jenkins" {
 resource "aws_instance" "jenkins" {
   ami                         = var.ami_id
   instance_type               = var.jenkins_instance_type
+  key_name                    = var.key_name
   subnet_id                   = var.public_subnet_id
   vpc_security_group_ids      = [var.jenkins_security_group_id]
   iam_instance_profile        = aws_iam_instance_profile.jenkins.name

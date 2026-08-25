@@ -80,3 +80,7 @@ variable "database_subnet_ids" {
 variable "database_security_group_id" {
   type = string
 }
+
+variable "key_name" {
+  type = string
+}

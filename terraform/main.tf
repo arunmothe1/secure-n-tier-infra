@@ -53,6 +53,7 @@ module "ec2" {
   instance_type         = var.instance_type
   jenkins_instance_type = var.jenkins_instance_type
   mongodb_instance_type = var.mongodb_instance_type
+  key_name              = var.key_name
 
   min_size         = var.min_size
   max_size         = var.max_size
