@@ -187,6 +187,7 @@ resource "aws_iam_role_policy" "jenkins" {
 
         Resource = "*"
       },
+
       {
         Effect = "Allow"
 
@@ -201,6 +202,7 @@ resource "aws_iam_role_policy" "jenkins" {
 
         Resource = var.ecr_repository_arn
       },
+
       {
         Effect = "Allow"
 
@@ -213,11 +215,22 @@ resource "aws_iam_role_policy" "jenkins" {
         ]
 
         Resource = "*"
+      },
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "elasticloadbalancing:DescribeTargetHealth",
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeLoadBalancers"
+        ]
+
+        Resource = "*"
       }
     ]
   })
 }
-
 resource "aws_iam_instance_profile" "jenkins" {
   name = "${var.project_name}-${var.environment}-jenkins-profile"
   role = aws_iam_role.jenkins.name
