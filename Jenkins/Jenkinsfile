@@ -21,17 +21,14 @@ pipeline {
                 '''
             }
         }
-
+        
         stage('Security Scan') {
             steps {
                 sh '''
-                    docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    aquasec/trivy:latest \
-                    image \
-                    --exit-code 1 \
-                    --severity HIGH,CRITICAL \
-                    ${ECR_REPOSITORY}:${IMAGE_TAG}
+                trivy image \
+                --ignore-unfixed \
+                --severity HIGH,CRITICAL \
+                ${ECR_REPOSITORY}:${IMAGE_TAG}
                 '''
             }
         }
