@@ -7,7 +7,7 @@ const App = () => {
   const [userBtn, setUserBtn] = useState("Add user");
   const [userVariant, setUserVariant] = useState({ bool: true, id: "" });
   //  API URI's
-  const BASE_URL = "http://localhost:3000/api";
+  const BASE_URL = "/api";
   const getUsers = `${BASE_URL}/users`;
   const postUser = `${BASE_URL}/addUser`;
 
