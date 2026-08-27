@@ -1,169 +1,424 @@
-# 🚀 End-to-End Automated Secure n-Tier Cloud Infrastructure on AWS
+# End-to-End Automated & Secure n-Tier Cloud Infrastructure with Application Deployment
 
-[![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
-[![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
-[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.io/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
-[![NodeJS](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+A secure, scalable, and automated **n-Tier application infrastructure** deployed on AWS using **Terraform, Docker, Jenkins, GitHub, Amazon ECR, Trivy, AWS Systems Manager, and MongoDB**.
 
-An enterprise-grade, highly available, and secure 3-tier cloud infrastructure provisioned on AWS using Infrastructure as Code (IaC) with **Terraform**, continuous integration and deployment (CI/CD) via **Jenkins**, application containerization with **Docker**, and traffic distribution through an **Application Load Balancer (ALB)**.
+This project demonstrates Infrastructure as Code, secure network segmentation, containerization, CI/CD automation, container vulnerability scanning, dynamic database configuration, and automated application deployment on AWS.
 
 ---
 
-## 📐 Architecture Overview
+## Project Overview
+
+The infrastructure is deployed inside an **AWS VPC** with three dedicated network tiers:
 
 ```text
-                               [ INTERNET ]
-                                     │
-                                     ▼
-                          ┌─────────────────────────┐
-                          │    Internet Gateway     │
-                          │          (IGW)          │
-                          └────────────┬────────────┘
-                                       │
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ AWS VPC: 10.0.0.0/16                                                        │
-│                                                                             │
-│  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │ PUBLIC SUBNET: 10.0.1.0/24                                            │  │
-│  │                                                                       │  │
-│  │         ┌───────────────────┐               ┌───────────────────┐     │  │
-│  │         │ Application Load  │               │ Jenkins Control   │     │  │
-│  │         │  Balancer (ALB)   │               │   Server (EC2)    │     │  │
-│  │         └─────────┬─────────┘               └─────────┬─────────┘     │  │
-│  │                   │                                   │               │  │
-│  │                   │ Forward Traffic                   │ SSH / Deploy  │  │
-│  │                   ▼                                   │               │  │
-│  │         ┌───────────────────┐                         │               │  │
-│  │         │    NAT Gateway    │                         │               │  │
-│  │         │   + Elastic IP    │                         │               │  │
-│  │         └─────────┬─────────┘                         │               │  │
-│  │                   │                                   │               │  │
-│  └───────────────────┼───────────────────────────────────┼───────────────┘  │
-│                      │                                   │                  │
-│       Internet Access│                                   │                  │
-│       for Private EC2│                                   │                  │
-│                      ▼                                   ▼                  │
-│  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │ PRIVATE APP SUBNET: 10.0.2.0/24                                       │  │
-│  │                                                                       │  │
-│  │       ┌──────────────────────┐      ┌──────────────────────┐          │  │
-│  │       │     App Server 1     │      │     App Server 2     │          │  │
-│  │       │    EC2 - Private     │      │    EC2 - Private     │          │  │
-│  │       └──────────┬───────────┘      └──────────┬───────────┘          │  │
-│  │                  │                             │                      │  │
-│  │                  └──────────────┬──────────────┘                      │  │
-│  │                                 │                                     │  │
-│  │                        Application Traffic                            │  │
-│  └─────────────────────────────────┬─────────────────────────────────────┘  │
-│                                    │                                        │
-│                                    ▼                                        │
-│  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │ PRIVATE DB SUBNET: 10.0.3.0/24                                        │  │
-│  │                                                                       │  │
-│  │                 ┌──────────────────────────┐                          │  │
-│  │                 │     Database Server      │                          │  │
-│  │                 │      EC2 - Private       │                          │  │
-│  │                 └──────────────────────────┘                          │  │
-│  │                                                                       │  │
-│  └───────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+AWS VPC
+│
+├── Public Subnet
+│   ├── Application Load Balancer (ALB)
+│   └── Jenkins Server
+│
+├── Private Application Subnet
+│   ├── App Server 1
+│   └── App Server 2
+│
+└── Private Database Subnet
+    └── MongoDB Server
 ```
 
-## ✨ Key Features & Highlights
+The application servers run Docker containers in private subnets, while MongoDB is isolated in a dedicated private database subnet.
 
-* **Infrastructure as Code (IaC):** Modularized Terraform configuration ensuring rapid, repeatable, and automated provisioning of AWS resources.
-* **Network Security & Isolation:** Custom VPC design utilizing isolated Public, Private Application, and Private Database subnets across Availability Zones.
-* **Zero Direct Public Exposure:** Backend Application servers and Database run exclusively in private subnets behind an Application Load Balancer and NAT Gateway.
-* **Granular Least-Privilege Security Groups:** Strict stateful firewall rules restricting inter-tier communication (e.g., DB tier accepts connections strictly from the App tier).
-* **Unified Containerization:** Multi-stage Docker builds packing React frontend and Node.js backend components into lightweight production-ready containers.
-* **Automated CI/CD Pipeline:** Jenkins declarative pipeline orchestrating code checks, container creation, registry uploads, rolling updates, and post-deployment health checks.
+The Application Load Balancer is the public entry point for application traffic. Jenkins automates the build, security scanning, image publishing, and deployment process.
 
 ---
 
-## 🛠️ Technology Stack
-
-| Category | Technology | Usage |
-| :--- | :--- | :--- |
-| **Cloud Provider** | AWS (Amazon Web Services) | Core Cloud Infrastructure |
-| **IaC** | Terraform | Infrastructure Provisioning & Management |
-| **Containers** | Docker, Docker Compose | Application Packaging & Local Orchestration |
-| **CI/CD** | Jenkins | Continuous Integration & Continuous Deployment |
-| **Load Balancing** | AWS Application Load Balancer (ALB) | Web Traffic Distribution & Target Health Checks |
-| **Operating System** | Amazon Linux 2023 | EC2 Compute Nodes |
-| **Languages & Web** | Node.js, Express, React, Nginx, Bash | Application Stack & System Automation Scripts |
-
----
-
-## 📁 Repository Structure
+## Architecture
 
 ```text
-End-to-End-Automated-Secure-n-Tier-Cloud-Infrastructure-with-Application-Deployment/
-├── README.md                           # Project Documentation
-├── .gitignore                          # Git Exclusion File
-├── application/                        # Source Code
-│   ├── frontend/                       # React Frontend Component
-│   └── backend/                        # Node.js Express API Server
-├── docker/                             # Container Specifications
-│   ├── Dockerfile                      # Unified Multi-Stage Production Build
-│   └── docker-compose.yml              # Local Development Stack
-├── jenkins/                            # Automation Pipelines
-│   └── Jenkinsfile                     # Declarative Deployment Pipeline
-├── scripts/                            # Helper & Health Check Scripts
-│   ├── install-docker.sh               # Local Docker Setup
-│   ├── install-terraform.sh            # Local Terraform Setup
-│   └── health-check.sh                 # Endpoint Verification Script
-├── docs/                               # Architecture Specifications
-│   ├── architecture.png                # Visual Architecture Diagram
-│   ├── security.md                     # Security Design & Controls
-│   └── deployment.md                   # Detailed Operating Procedures
-└── terraform/                          # Infrastructure Configuration
-    ├── provider.tf                     # AWS Provider & HashiCorp Config
-    ├── variables.tf                    # Parameter Declarations
-    ├── terraform.tfvars.example        # Environment Variables Template
-    ├── vpc.tf                          # Virtual Private Cloud Definition
-    ├── subnet.tf                       # Public & Private Subnet Routing
-    ├── internet-gateway.tf             # Edge Internet Access Gateway
-    ├── nat-gateway.tf                  # Outbound Internet Access for Private Subnets
-    ├── route-table.tf                  # Traffic Control Route Tables
-    ├── security-group.tf               # Stateful Firewall Definitions
-    ├── ec2.tf                          # Compute Resource Specifications (3 Nodes)
-    ├── alb.tf                          # Application Load Balancer & Target Groups
-    ├── outputs.tf                      # Infrastructure Endpoint Outputs
-    └── userdata/                       # Startup Configuration Scripts
+                              INTERNET
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │      ALB        │
+                         │  Public Subnet  │
+                         └────────┬────────┘
+                                  │
+                         Application Traffic
+                                  │
+                    ┌─────────────┴─────────────┐
+                    ▼                           ▼
+             ┌─────────────┐             ┌─────────────┐
+             │ App Server 1│             │ App Server 2│
+             │    EC2      │             │    EC2      │
+             │   Docker    │             │   Docker    │
+             └──────┬──────┘             └──────┬──────┘
+                    │                           │
+                    └─────────────┬─────────────┘
+                                  │
+                           Database Traffic
+                                  │
+                                  ▼
+                         ┌────────────────┐
+                         │    MongoDB     │
+                         │      EC2       │
+                         │  Private DB    │
+                         └────────────────┘
 ```
 
+---
 
-## 🚀 Quick Start Deployment Guide
+## CI/CD Architecture
+
+```text
+Developer
+    │
+    │ git push
+    ▼
+ GitHub
+    │
+    │ Webhook
+    ▼
+ Jenkins
+    │
+    ├── Checkout Source Code
+    │
+    ├── Build Docker Image
+    │
+    ├── Scan Image with Trivy
+    │
+    ├── Authenticate with Amazon ECR
+    │
+    ├── Push Image to ECR
+    │
+    ├── Discover MongoDB Private IP
+    │
+    └── Deploy through AWS Systems Manager
+             │
+             ▼
+      Private App Servers
+             │
+             ▼
+         Application
+```
 
 ---
 
-## ⚙️ Prerequisites
+## Application Traffic Flow
 
-Before running Terraform commands, ensure you have:
+Application traffic flows through the Application Load Balancer.
 
-- **Terraform CLI** (>= v1.5.0) installed.
-- **AWS CLI** configured with valid IAM credentials.
-- Appropriate AWS IAM permissions for VPC, EC2, Security Groups, and ALB provisioning.
- - 🚀 [Deployment Guide](docs/deployment.md)
----
+```text
+Internet
+   ↓
+Application Load Balancer
+   ↓
+Target Group
+   ↓
+App Server 1 / App Server 2
+   ↓
+MongoDB
+```
 
-
-
-## 📚 Documentation
-
-Project documentation and architecture references:
-
-- 🏗️ [Architecture Diagram](docs/architecture.png)
-- 🚀 [Deployment Guide](docs/deployment.md)
-- 🔐 [Security Design](docs/security.md)
+The ALB distributes incoming requests across the private application servers registered in the target group.
 
 ---
 
-## 👨‍💻 Author
+## Deployment Traffic Flow
 
-**Arun Mothe**  
-* Cloud & DevOps Engineer  
-* GitHub: [@arunmothe1](https://github.com/arunmothe1)
+Deployment traffic is handled independently from application traffic.
+
+```text
+GitHub
+   ↓
+Jenkins
+   ↓
+Docker Build
+   ↓
+Trivy Security Scan
+   ↓
+Amazon ECR
+   ↓
+AWS Systems Manager
+   ↓
+Private App Servers
+```
+
+---
+
+## Technology Stack
+
+| Category                | Technologies                              |
+| ----------------------- | ----------------------------------------- |
+| Cloud                   | AWS                                       |
+| Infrastructure as Code  | Terraform                                 |
+| Compute                 | Amazon EC2                                |
+| Networking              | VPC, Subnets, Route Tables                |
+| Connectivity            | Internet Gateway, NAT Gateway, Elastic IP |
+| Load Balancing          | Application Load Balancer, Target Groups  |
+| Security                | IAM, Security Groups, Trivy               |
+| Containers              | Docker, Docker Compose                    |
+| Container Registry      | Amazon ECR                                |
+| CI/CD                   | Jenkins                                   |
+| Version Control         | Git, GitHub                               |
+| Server Operating System | Amazon Linux 2023                         |
+| Server Management       | AWS Systems Manager, Session Manager      |
+| Web Server              | Nginx                                     |
+| Frontend                | React, Vite                               |
+| Backend                 | Node.js, Express.js                       |
+| Database                | MongoDB                                   |
+| Scripting               | Bash, Linux                               |
+| Server Access           | SSH                                       |
+| Command-Line Tools      | AWS CLI                                   |
+
+---
+
+## Project Structure
+
+```text
+secure-n-tier-infra/
+│
+├── application/
+│   ├── client/
+│   └── server/
+│
+├── Docker/
+│   ├── .dockerignore
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   └── supervisord.conf
+│
+├── docs/
+│   ├── deployment.md
+│   └── security.md
+│
+├── Jenkins/
+│   └── Jenkinsfile
+│
+├── scripts/
+│   ├── Health-check.sh
+│   └── install-terraform.sh
+│
+├── terraform/
+│   ├── modules/
+│   │   ├── alb/
+│   │   ├── ec2/
+│   │   ├── ecr/
+│   │   ├── security-group/
+│   │   └── vpc/
+│   │
+│   ├── screenshots/
+│   ├── data.tf
+│   ├── locals.tf
+│   ├── main.tf
+│   ├── outputs.tf
+│   ├── providers.tf
+│   ├── README.md
+│   ├── terraform.tfvars
+│   ├── terraform.tfvars.example
+│   ├── variables.tf
+│   └── versions.tf
+│
+├── .gitignore
+└── README.md
+```
+
+> Terraform state files, the `.terraform` directory, credentials, private keys, and other sensitive files should not be committed to the Git repository.
+
+---
+
+
+---
+
+## Infrastructure Provisioning
+
+Terraform provisions and manages the following AWS resources:
+
+```text
+VPC
+Public Subnet
+Private Application Subnet
+Private Database Subnet
+Internet Gateway
+NAT Gateway
+Elastic IP
+Route Tables
+Security Groups
+Application Load Balancer
+Target Groups
+EC2 Instances
+Amazon ECR
+IAM Resources
+```
+
+The infrastructure is designed to be repeatable, version-controlled, and consistently deployable across environments.
+
+---
+
+## CI/CD Pipeline
+
+Jenkins automates the application build and deployment lifecycle.
+
+Pipeline flow:
+
+```text
+GitHub
+   ↓
+Jenkins
+   ↓
+Docker Build
+   ↓
+Trivy Security Scan
+   ↓
+Amazon ECR Login
+   ↓
+Push Image to ECR
+   ↓
+Dynamic MongoDB IP Discovery
+   ↓
+AWS Systems Manager Deployment
+   ↓
+Private App Servers
+   ↓
+Application Health Check
+```
+
+The pipeline ensures that container images are scanned before deployment and that the latest approved image is deployed to the private application servers.
+
+---
+
+## Docker
+
+The application is containerized using Docker.
+
+Docker configuration is available under:
+
+```text
+Docker/
+├── Dockerfile
+├── docker-compose.yml
+├── nginx.conf
+└── supervisord.conf
+```
+
+The container configuration supports the application runtime, frontend delivery, backend services, and process management.
+
+---
+
+## Security
+
+Security is implemented through:
+
+* Public and private subnet separation
+* Security Groups with restricted traffic rules
+* IAM-based access control
+* Private application servers
+* Private MongoDB server
+* Application Load Balancer as the public entry point
+* Trivy container vulnerability scanning
+* Amazon ECR for private image storage
+* AWS Systems Manager for private server management
+* Controlled database access from the application tier
+
+See the detailed security documentation:
+
+```text
+docs/security.md
+```
+
+---
+
+## Deployment Guide
+
+For complete deployment instructions, see:
+
+```text
+docs/deployment.md
+```
+
+The deployment guide covers:
+
+```text
+AWS CLI Configuration
+        ↓
+GitHub Repository Clone
+        ↓
+Terraform Initialization
+        ↓
+AWS Infrastructure Provisioning
+        ↓
+Jenkins Setup
+        ↓
+Docker Image Build
+        ↓
+Trivy Security Scan
+        ↓
+Amazon ECR Image Push
+        ↓
+AWS Systems Manager Deployment
+        ↓
+Application Load Balancer Testing
+        ↓
+GitHub Webhook Configuration
+        ↓
+Automated CI/CD Validation
+```
+
+---
+
+## Health Check
+
+The project includes an application health-check script:
+
+```text
+scripts/Health-check.sh
+```
+
+Make the script executable:
+
+```bash
+chmod +x scripts/Health-check.sh
+```
+
+Run the health check:
+
+```bash
+./scripts/Health-check.sh
+```
+
+The script can be used to verify application availability and deployment status.
+
+---
+
+## Key Features
+
+* Secure AWS n-Tier architecture
+* Dedicated public, application, and database network tiers
+* Private application and database servers
+* Two application servers for improved availability
+* Application Load Balancer with target-group routing
+* Dockerized application deployment
+* Terraform-based infrastructure provisioning
+* Jenkins-based CI/CD automation
+* GitHub webhook integration
+* Trivy container image vulnerability scanning
+* Amazon ECR image storage
+* Dynamic MongoDB private IP discovery
+* AWS Systems Manager-based deployment
+* Automated application health checks
+* Controlled network access using Security Groups and IAM
+
+---
+
+## Author
+
+**Arun Mothe**
+
+Cloud & DevOps Engineer
+
+GitHub: [arunmothe1](https://github.com/arunmothe1)
+
+---
+
+## Project Summary
+
+This project demonstrates an end-to-end automated and secure cloud deployment workflow. Terraform provisions the AWS infrastructure, Docker containerizes the application, Jenkins automates the CI/CD pipeline, Trivy scans container images for vulnerabilities, Amazon ECR stores the approved images, AWS Systems Manager deploys the application to private servers, and the Application Load Balancer distributes traffic across multiple application servers.

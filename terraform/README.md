@@ -1,170 +1,413 @@
-# AWS n-Tier Infrastructure Provisioning with Terraform
+# Terraform Infrastructure
 
-This directory contains production-grade Infrastructure as Code (IaC) written in **Terraform** to provision a highly secure, scalable, and modular **n-Tier Cloud Architecture** on AWS.
-
----
-
-## 🏗️ Architecture Overview
-
-The infrastructure creates an isolated multi-tier environment spanning across Public and Private subnets using Amazon Linux 2023 instances:
-
-1. **Networking Tier (VPC)**:
-   - 1 Public Subnet (Host for Jenkins Control Server, NAT Gateway, ALB)
-   - 1 Private Subnet (Application Tier - App Server 1 & 2)
-   - 1 Private Subnet (Database Tier - DB Server)
-   - Internet Gateway (IGW) for public traffic and NAT Gateway for secure outbound internet connectivity for private subnets.
-
-2. **Security Tier (Security Groups)**:
-   - **ALB SG**: Accepts HTTP (Port 80) from `0.0.0.0/0`.
-   - **Jenkins SG**: Accepts SSH (Port 22) & Web UI (Port 8080).
-   - **App SG**: Accepts HTTP (Port 80) **only** from ALB SG and SSH (Port 22) **only** from Jenkins SG.
-   - **DB SG**: Accepts MySQL (Port 3306) **only** from App SG.
-
-3. **Compute Tier (EC2)**:
-   - **Jenkins Server**: Managed in Public Subnet.
-   - **App Server 1 & 2**: Managed in Private App Subnet running Docker runtime via `user-data`.
-   - **DB Server**: Managed in Private DB Subnet.
-
-4. **Load Balancing Tier (ALB)**:
-   - Application Load Balancer targeting App Server 1 and App Server 2 with HTTP health checks.
+This directory contains the Terraform configuration used to provision the AWS infrastructure for the Secure N-Tier project.
 
 ---
 
-## 📁 Directory Structure
+## Overview
 
+Terraform is used as Infrastructure as Code (IaC) to create and manage:
+
+```text
+AWS VPC
+Public Subnet
+Private Application Subnet
+Private Database Subnet
+Internet Gateway
+NAT Gateway
+Elastic IP
+Route Tables
+Security Groups
+Application Load Balancer
+Target Groups
+EC2 Instances
+Amazon ECR
+IAM Resources
+```
+
+---
+
+## Directory Structure
+
+```text
 terraform/
-├── backend.tf
-├── versions.tf
-├── providers.tf
-├── variables.tf
-├── locals.tf
-├── data.tf
-├── main.tf
-├── outputs.tf
-├── terraform.tfvars
-├── terraform.tfvars.example
-├── README.md
 │
 ├── modules/
-│   ├── vpc/
-│   ├── security-group/
 │   ├── alb/
 │   ├── ec2/
 │   ├── ecr/
-│   └── rds/
+│   ├── security-group/
+│   └── vpc/
 │
-└── screenshots/
+├── data.tf
+├── locals.tf
+├── main.tf
+├── outputs.tf
+├── providers.tf
+├── variables.tf
+├── versions.tf
+├── terraform.tfvars.example
+└── README.md
 ```
 
 ---
 
-## ⚙️ Prerequisites
+## Terraform Modules
 
-Before running Terraform commands, ensure you have:
+### VPC Module
 
-- **Terraform CLI** (>= v1.5.0) installed.
-- **AWS CLI** configured with valid IAM credentials.
-- Appropriate AWS IAM permissions for VPC, EC2, Security Groups, and ALB provisioning.
+The VPC module creates the core networking infrastructure.
+
+```text
+modules/vpc/
+```
+
+Includes:
+
+* VPC
+* Public Subnets
+* Private Application Subnets
+* Private Database Subnet
+* Internet Gateway
+* NAT Gateway
+* Route Tables
 
 ---
 
-## 🚀 Deployment Steps
+### Security Group Module
 
-### Configure AWS CLI
+```text
+modules/security-group/
+```
+
+Creates the Security Groups required for:
+
+* ALB
+* Jenkins
+* Application Servers
+* MongoDB
+
+---
+
+### EC2 Module
+
+```text
+modules/ec2/
+```
+
+Creates the required EC2 instances.
+
+The project includes:
+
+```text
+Jenkins Server
+App Server 1
+App Server 2
+MongoDB Server
+```
+
+---
+
+### ALB Module
+
+```text
+modules/alb/
+```
+
+Creates:
+
+```text
+Application Load Balancer
+Target Group
+Listeners
+Target Registration
+```
+
+---
+
+### ECR Module
+
+```text
+modules/ecr/
+```
+
+Creates the Amazon ECR repository used to store application Docker images.
+
+---
+
+## Terraform Files
+
+| File                       | Purpose                                |
+| -------------------------- | -------------------------------------- |
+| `main.tf`                  | Main Terraform configuration           |
+| `providers.tf`             | AWS provider configuration             |
+| `versions.tf`              | Terraform/provider version constraints |
+| `variables.tf`             | Input variables                        |
+| `locals.tf`                | Local values                           |
+| `data.tf`                  | AWS data sources                       |
+| `outputs.tf`               | Infrastructure outputs                 |
+| `terraform.tfvars.example` | Example input values                   |
+
+---
+
+## Prerequisites
+
+Install:
+
+```text
+Terraform
+AWS CLI
+Git
+```
+
+Verify:
+
 ```bash
-Because Terraform will run from the Jenkins server, configure AWS access.
+terraform --version
+aws --version
+git --version
+```
 
+Configure AWS:
+
+```bash
 aws configure
-
-Enter:
-
-AWS Access Key ID:     YOUR_ACCESS_KEY
-AWS Secret Access Key: YOUR_SECRET_KEY
-Default region name:  ap-south-1
-Default output format: json
 ```
 
-### 1. Clone the Repository & Navigate to Directory
+Verify:
+
 ```bash
-git clone [https://github.com/arunmothe1/End-to-End-Automated-Secure-n-Tier-Cloud-Infrastructure-with-Application-Deployment.git](https://github.com/arunmothe1/End-to-End-Automated-Secure-n-Tier-Cloud-Infrastructure-with-Application-Deployment.git)
-cd End-to-End-Automated-Secure-n-Tier-Cloud-Infrastructure-with-Application-Deployment/terraform
+aws sts get-caller-identity
 ```
 
-### 2. Set Variable Value (`terraform.tfvars`)
-Provide your exact AWS Key Pair name (**without** the `.pem` extension):
+---
+
+## Configure Variables
+
+Create a local Terraform variables file:
+
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit:
+
+```bash
+nano terraform.tfvars
+```
+
+Example:
 
 ```hcl
-key_name = "your exact AWS Key Pair name"
+key_name = "your-key-pair-name"
+```
 
-### 2. Initialize Terraform Modules & Provider
+Do not commit sensitive values to GitHub.
+
+---
+
+## Initialize Terraform
+
 ```bash
 terraform init
 ```
 
-### 3. Review Provisioning Plan
+---
+
+## Format Terraform
+
+```bash
+terraform fmt -recursive
+```
+
+---
+
+## Validate Configuration
+
+```bash
+terraform validate
+```
+
+Expected:
+
+```text
+Success! The configuration is valid.
+```
+
+---
+
+## Review Plan
+
 ```bash
 terraform plan
 ```
 
-### 4. Deploy Infrastructure
+Review all resources before applying.
+
+---
+
+## Apply Infrastructure
+
 ```bash
-terraform apply -auto-approve
+terraform apply
 ```
 
-### 5. Access Outputs
-After successful deployment, Terraform will output key endpoints:
+Confirm:
+
 ```text
-Outputs:
-
-jenkins_server_public_ip = "x.x.x.x"
-load_balancer_dns        = "prod-alb-xxxxxx.ap-south-1.elb.amazonaws.com"
-vpc_id                   = "vpc-xxxxxxxxxxxx"
+yes
 ```
+
+Terraform will create the infrastructure.
 
 ---
 
-## 🧹 Cleanup / Destroy
+## View Outputs
 
-To tear down all resources and avoid unexpected AWS charges:
 ```bash
-terraform destroy -auto-approve
+terraform output
 ```
 
+Important outputs may include:
 
-## 📸 Infrastructure Verification & Proof of Concept
-
-The following screenshots verify the complete automated deployment and teardown of the AWS n-tier architecture:
-
-### 1. Terraform Deployment Success
-![Terraform Apply](screenshots/01-terraform-apply.png)
-
----
-
-### 2. AWS Virtual Private Cloud (VPC)
-![AWS VPC](screenshots/02-aws-vpc.png)
+```text
+VPC ID
+ALB DNS
+Jenkins Public IP
+Application Server IDs
+MongoDB Instance ID
+ECR Repository
+```
 
 ---
 
-### 3. Public & Private Subnets Topology
-![AWS Subnets](screenshots/03-aws-subnets.png)
+## Destroy Infrastructure
+
+To remove all Terraform-managed infrastructure:
+
+```bash
+terraform destroy
+```
+
+Confirm:
+
+```text
+yes
+```
+
+> Use `terraform destroy` carefully because it permanently removes the managed infrastructure.
 
 ---
 
-### 4. Internet Gateway & NAT Gateway
-| Internet Gateway | NAT Gateway |
-| :---: | :---: |
-| ![IGW](screenshots/04-aws-igw.png) | ![NAT GW](screenshots/05-aws-nat-gateway.png) |
+## Recommended Terraform Workflow
+
+```text
+terraform init
+      ↓
+terraform fmt
+      ↓
+terraform validate
+      ↓
+terraform plan
+      ↓
+terraform apply
+      ↓
+terraform output
+```
 
 ---
 
-### 5. Provisioned EC2 Instances (Jenkins, App-1, App-2, DB)
-![EC2 Instances](screenshots/06-aws-ec2-instances.png)
+## Infrastructure Architecture
+
+```text
+AWS VPC
+│
+├── Public Subnet
+│   ├── Application Load Balancer
+│   └── Jenkins EC2
+│
+├── Private Application Subnet
+│   ├── App Server 1 EC2
+│   └── App Server 2 EC2
+│
+└── Private Database Subnet
+    └── MongoDB EC2
+```
 
 ---
 
-### 6. Application Load Balancer (ALB)
-![AWS ALB](screenshots/07-aws-alb.png)
+## Terraform Security
+
+Do not commit the following files or directories:
+
+```text
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+Private Keys
+Secret Files
+```
+
+Keep only:
+
+```text
+terraform.tfvars.example
+```
+
+in the Git repository as an example configuration.
 
 ---
 
-### 7. Automated Infrastructure Teardown (`terraform destroy`)
+## Terraform and CI/CD Integration
+
+Terraform provisions the infrastructure required by the CI/CD pipeline.
+
+```text
+Terraform
+    ↓
+AWS Infrastructure
+    ↓
+Jenkins
+    ↓
+Docker
+    ↓
+Trivy
+    ↓
+Amazon ECR
+    ↓
+AWS Systems Manager
+    ↓
+App Servers
+```
+
+---
+
+## Result
+
+Terraform provides a repeatable and consistent way to provision the complete AWS infrastructure for the Secure N-Tier application.
+
+
+## 📸 Infrastructure Verification & Proof
+
+All infrastructure verification screenshots are available in:
+
+`terraform/screenshots/`
+
+The screenshots provide proof of the provisioned AWS infrastructure and its configuration.
+
+Check the folder for:
+
+- Terraform Apply
+- VPC
+- Subnets
+- Internet Gateway
+- NAT Gateway
+- EC2 Instances
+- Application Load Balancer
+- Target Group
+- Auto Scaling Group
+- Security Groups
+- Amazon ECR
+- Terraform Outputs
+- Terraform Destroy
