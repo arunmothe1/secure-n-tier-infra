@@ -1,4 +1,10 @@
 # End-to-End Automated & Secure n-Tier Cloud Infrastructure with Application Deployment
+![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-purple)
+![Docker](https://img.shields.io/badge/Docker-Container-blue)
+![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-red)
+![Trivy](https://img.shields.io/badge/Trivy-Security-green)
+![MongoDB](https://img.shields.io/badge/MongoDB-Database-darkgreen)
 
 A secure, scalable, and automated **n-Tier application infrastructure** deployed on AWS using **Terraform, Docker, Jenkins, GitHub, Amazon ECR, Trivy, AWS Systems Manager, and MongoDB**.
 
@@ -6,140 +12,102 @@ This project demonstrates Infrastructure as Code, secure network segmentation, c
 
 ---
 
-## Project Overview
+## Project Description / Overview
 
-The infrastructure is deployed inside an **AWS VPC** with three dedicated network tiers:
+This project demonstrates an end-to-end automated and secure n-tier application infrastructure deployed on AWS.
 
-```text
-AWS VPC
-│
-├── Public Subnet
-│   ├── Application Load Balancer (ALB)
-│   └── Jenkins Server
-│
-├── Private Application Subnet
-│   ├── App Server 1
-│   └── App Server 2
-│
-└── Private Database Subnet
-    └── MongoDB Server
-```
+The infrastructure is provisioned using **Terraform** and the application is containerized using **Docker**. **Jenkins** automates the CI/CD pipeline, while **Trivy** scans Docker images for vulnerabilities before deployment.
 
-The application servers run Docker containers in private subnets, while MongoDB is isolated in a dedicated private database subnet.
+The application runs on private EC2 application servers behind an **Application Load Balancer (ALB)**, with **MongoDB** hosted in a private database subnet.
 
-The Application Load Balancer is the public entry point for application traffic. Jenkins automates the build, security scanning, image publishing, and deployment process.
+AWS Systems Manager (SSM) is used to deploy and manage the private application servers without requiring direct public SSH access.
 
----
+### Key Objectives
 
-## Architecture
+- Build a secure n-tier AWS architecture
+- Provision infrastructure using Terraform
+- Containerize the application using Docker
+- Automate CI/CD using Jenkins and GitHub
+- Scan container images using Trivy
+- Store images in Amazon ECR
+- Deploy to private EC2 servers using AWS Systems Manager
+- Keep application and database servers in private subnets
+## Quick Links
 
-```text
-                              INTERNET
-                                  │
-                                  ▼
-                         ┌─────────────────┐
-                         │      ALB        │
-                         │  Public Subnet  │
-                         └────────┬────────┘
-                                  │
-                         Application Traffic
-                                  │
-                    ┌─────────────┴─────────────┐
-                    ▼                           ▼
-             ┌─────────────┐             ┌─────────────┐
-             │ App Server 1│             │ App Server 2│
-             │    EC2      │             │    EC2      │
-             │   Docker    │             │   Docker    │
-             └──────┬──────┘             └──────┬──────┘
-                    │                           │
-                    └─────────────┬─────────────┘
-                                  │
-                           Database Traffic
-                                  │
-                                  ▼
-                         ┌────────────────┐
-                         │    MongoDB     │
-                         │      EC2       │
-                         │  Private DB    │
-                         └────────────────┘
-```
+- [Architecture Documentation](docs/architecture.md)
+- [Deployment Guide](docs/deployment.md)
+- [Security Documentation](docs/security.md)
+- [Jenkins Pipeline](Jenkins/Jenkinsfile)
+- [Terraform Configuration](terraform/)
 
 ---
 
-## CI/CD Architecture
+## Architecture Diagram
 
-```text
-Developer
-    │
-    │ git push
-    ▼
- GitHub
-    │
-    │ Webhook
-    ▼
- Jenkins
-    │
-    ├── Checkout Source Code
-    │
-    ├── Build Docker Image
-    │
-    ├── Scan Image with Trivy
-    │
-    ├── Authenticate with Amazon ECR
-    │
-    ├── Push Image to ECR
-    │
-    ├── Discover MongoDB Private IP
-    │
-    └── Deploy through AWS Systems Manager
-             │
-             ▼
-      Private App Servers
-             │
-             ▼
-         Application
-```
+The following diagram represents the complete AWS infrastructure, application traffic flow, CI/CD pipeline, and private network architecture.
+
+<p align="center">
+  <img
+    src="docs/images/architecture-diagram.png"
+    alt="Secure n-Tier AWS Architecture"
+    width="950"
+  />
+</p>
 
 ---
+## Architecture Components
 
-## Application Traffic Flow
+| Component | Purpose |
+|---|---|
+| AWS VPC | Provides an isolated network environment |
+| Public Subnet | Hosts Jenkins, ALB, and NAT Gateway |
+| Private App Subnet | Hosts the application servers |
+| Private DB Subnet | Hosts the MongoDB server |
+| Internet Gateway | Provides internet connectivity for the VPC |
+| NAT Gateway | Provides outbound internet access for private servers |
+| Application Load Balancer | Distributes incoming application traffic |
+| Target Group | Routes traffic to application servers |
+| Jenkins | Automates the CI/CD pipeline |
+| Amazon ECR | Stores Docker container images |
+| Trivy | Scans container images for vulnerabilities |
+| AWS Systems Manager | Manages and deploys private EC2 servers |
+| EC2 | Hosts Jenkins, application, and MongoDB servers |
+| MongoDB | Stores application data |
 
-Application traffic flows through the Application Load Balancer.
+
+## Application Flow
+
+Application traffic follows this path:
 
 ```text
+User
+  ↓
 Internet
-   ↓
+  ↓
+Internet Gateway
+  ↓
 Application Load Balancer
-   ↓
+  ↓
 Target Group
-   ↓
+  ↓
 App Server 1 / App Server 2
-   ↓
+  ↓
 MongoDB
 ```
 
 The ALB distributes incoming requests across the private application servers registered in the target group.
 
+Private application servers use the NAT Gateway for outbound internet connectivity.
+
+App Server 1 / App Server 2
+            ↓
+       NAT Gateway
+            ↓
+    Internet Gateway
+            ↓
+         Internet
 ---
 
-## Deployment Traffic Flow
-
-Deployment traffic is handled independently from application traffic.
-
-```text
-GitHub
-   ↓
-Jenkins
-   ↓
-Docker Build
-   ↓
-Trivy Security Scan
-   ↓
-Amazon ECR
-   ↓
-AWS Systems Manager
-   ↓
-Private App Servers
 ```
 
 ---
@@ -168,7 +136,7 @@ Private App Servers
 | Scripting               | Bash, Linux                               |
 | Server Access           | SSH                                       |
 | Command-Line Tools      | AWS CLI                                   |
-
+```
 ---
 
 ## Project Structure
@@ -188,6 +156,13 @@ secure-n-tier-infra/
 │   └── supervisord.conf
 │
 ├── docs/
+│   ├── images/
+│   │   ├── architecture-diagram.png
+│   │   ├── Infra/
+│   │   ├── Jenkins/
+│   │   └── other/
+│   │
+│   ├── architecture.md
 │   ├── deployment.md
 │   └── security.md
 │
@@ -206,14 +181,12 @@ secure-n-tier-infra/
 │   │   ├── security-group/
 │   │   └── vpc/
 │   │
-│   ├── screenshots/
 │   ├── data.tf
 │   ├── locals.tf
 │   ├── main.tf
 │   ├── outputs.tf
 │   ├── providers.tf
 │   ├── README.md
-│   ├── terraform.tfvars
 │   ├── terraform.tfvars.example
 │   ├── variables.tf
 │   └── versions.tf
@@ -286,22 +259,6 @@ The pipeline ensures that container images are scanned before deployment and tha
 
 ---
 
-## Docker
-
-The application is containerized using Docker.
-
-Docker configuration is available under:
-
-```text
-Docker/
-├── Dockerfile
-├── docker-compose.yml
-├── nginx.conf
-└── supervisord.conf
-```
-
-The container configuration supports the application runtime, frontend delivery, backend services, and process management.
-
 ---
 
 ## Security
@@ -326,42 +283,21 @@ docs/security.md
 ```
 
 ---
+## Documentation
 
-## Deployment Guide
+Detailed project documentation is available in the `docs/` directory.
 
-For complete deployment instructions, see:
+- [Architecture Documentation](docs/architecture.md)  
+  Details about the AWS n-Tier architecture, network design, components, and traffic flow.
 
-```text
-docs/deployment.md
-```
+- [Deployment Documentation](docs/deployment.md)  
+  Step-by-step guide for Terraform infrastructure provisioning, Jenkins CI/CD, Docker image build, ECR push, and application deployment.
 
-The deployment guide covers:
+- [Security Documentation](docs/security.md)  
+  Details about private subnets, Security Groups, AWS Systems Manager, IAM, Trivy security scanning, and secure access.
 
-```text
-AWS CLI Configuration
-        ↓
-GitHub Repository Clone
-        ↓
-Terraform Initialization
-        ↓
-AWS Infrastructure Provisioning
-        ↓
-Jenkins Setup
-        ↓
-Docker Image Build
-        ↓
-Trivy Security Scan
-        ↓
-Amazon ECR Image Push
-        ↓
-AWS Systems Manager Deployment
-        ↓
-Application Load Balancer Testing
-        ↓
-GitHub Webhook Configuration
-        ↓
-Automated CI/CD Validation
-```
+- [Architecture Diagram](docs/images/architecture-diagram.png)  
+  Visual representation of the complete AWS infrastructure and application flow.
 
 ---
 
@@ -407,18 +343,20 @@ The script can be used to verify application availability and deployment status.
 * Automated application health checks
 * Controlled network access using Security Groups and IAM
 
----
 
-## Author
+## 👨‍💻 Author
 
 **Arun Mothe**
 
 Cloud & DevOps Engineer
 
-GitHub: [arunmothe1](https://github.com/arunmothe1)
+<p align="left">
+  <a href="https://github.com/arunmothe1">
+    <img src="https://img.shields.io/badge/GitHub-arunmothe1-black?logo=github" alt="GitHub">
+  </a>
+  <a href="https://github.com/arunmothe1/secure-n-tier-infra">
+    <img src="https://img.shields.io/badge/Project-secure--n--tier--infra-blue?logo=github" alt="Project Repository">
+  </a>
+</p>
 
 ---
-
-## Project Summary
-
-This project demonstrates an end-to-end automated and secure cloud deployment workflow. Terraform provisions the AWS infrastructure, Docker containerizes the application, Jenkins automates the CI/CD pipeline, Trivy scans container images for vulnerabilities, Amazon ECR stores the approved images, AWS Systems Manager deploys the application to private servers, and the Application Load Balancer distributes traffic across multiple application servers.
