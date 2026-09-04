@@ -14,6 +14,8 @@ This document describes the deployment process for provisioning AWS infrastructu
 
 Use a Linux machine or EC2 instance as the deployment/administration machine.
 
+
+
 Check the required tools:
 
 ```bash
