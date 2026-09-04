@@ -152,15 +152,21 @@ Creates the Amazon ECR repository used to store application Docker images.
 
 ## Prerequisites
 
-Install:
+The project provides a Terraform installation script:
 
 ```text
-Terraform
-AWS CLI
-Git
+scripts/install-terraform.sh
+
+If Terraform is not installed, run:
+```
+---
+```bash
+chmod +x ../scripts/install-terraform.sh
+../scripts/install-terraform.sh
 ```
 
-Verify:
+Verify the installation:
+
 
 ```bash
 terraform --version
