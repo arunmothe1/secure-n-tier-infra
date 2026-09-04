@@ -398,9 +398,9 @@ Terraform provides a repeatable and consistent way to provision the complete AWS
 
 All infrastructure verification screenshots are available in:
 
-`terraform/screenshots/`
+`docs/images/Infra/`
 
-📸 [Terraform Infrastructure Screenshots](docs/images/Infra)
+📸 [Terraform Infrastructure Screenshots](../docs/images/Infra/)
 
 The screenshots provide proof of the provisioned AWS infrastructure and its configuration.
 
