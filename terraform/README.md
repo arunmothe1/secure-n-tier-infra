@@ -394,6 +394,8 @@ All infrastructure verification screenshots are available in:
 
 `terraform/screenshots/`
 
+📸 [Terraform Infrastructure Screenshots](docs/images/Infra)
+
 The screenshots provide proof of the provisioned AWS infrastructure and its configuration.
 
 Check the folder for:
