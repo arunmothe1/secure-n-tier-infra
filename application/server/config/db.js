@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-// const mongoURI = 'mongodb+srv://crudapp:crudapp@...';
+// const mongoURI = 'mongodb+srv://crudapp:crudapp@...'; 
 const mongoURI =
   process.env.MONGO_URI || 'mongodb://localhost:27017/crud';
 

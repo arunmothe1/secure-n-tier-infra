@@ -99,18 +99,8 @@ The ALB distributes incoming requests across the private application servers reg
 
 Private application servers use the NAT Gateway for outbound internet connectivity.
 
-App Server 1 / App Server 2
-            ↓
-       NAT Gateway
-            ↓
-    Internet Gateway
-            ↓
-         Internet
 ---
 
-```
-
----
 
 ## Technology Stack
 
@@ -136,7 +126,7 @@ App Server 1 / App Server 2
 | Scripting               | Bash, Linux                               |
 | Server Access           | SSH                                       |
 | Command-Line Tools      | AWS CLI                                   |
-```
+
 ---
 
 ## Project Structure
